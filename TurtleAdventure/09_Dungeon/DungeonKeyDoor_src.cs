@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DungenKeyDoor_src : MonoBehaviour
+public class DungeonKeyDoor_src : MonoBehaviour
 {
 /*------------- 概要 -------------------
 施錠された扉にアタッチする。
@@ -10,16 +10,30 @@ public class DungenKeyDoor_src : MonoBehaviour
 */
 
 /*------------- インスペクター設定用変数 --------------*/
-    [SerializeField] DungenKeyManager_src sc_g_keyManager;
-    [SerializeField] bool fg_g_bossDoor;
-    
+    [SerializeField] DungeonKeyManager_src sc_g_keyManager;  // キーマネージャー"DungenKeyManager_src"用（鍵の所持数等の管理用スクリプト）
+    [SerializeField] bool fg_g_bossDoor;                    // ボス用扉か(T:ボス用扉、F:通常扉)
+    [SerializeField] AudioClip ac_g_doorOpen_se;          // 扉の開錠SE
+
 /*--------------- 定数 ----------------*/
 // 無し
 
 /*------------- 代入用変数----------------*/
-// 無し
+    private Animator at_g_animator;     // "Animator"コンポーネント取得用
+    private AudioSource as_g_audioSource;   // SE用オーディオソース
+   
 
+    /// <summary>
+    /// スクリプトのインスタンスロード時に呼び出される
+    /// </summary>
+    private void Awake()
+    {   
+        // AudioSourceコンポーネント取得
+        as_g_audioSource = this.transform.GetComponent<AudioSource>();
+        // 扉の開閉アニメーション変数を設定して扉を閉じる（初期値）
+        at_g_animator = this.transform.GetComponent<Animator>();
+        at_g_animator.SetBool("State", false);
 
+    }
 
     /// <summary>
     /// 他コライダーに接触した際に呼び出される処理。
@@ -46,7 +60,11 @@ public class DungenKeyDoor_src : MonoBehaviour
         // IF:対象のカギを1つ以上所持しているか
         if(sc_g_keyManager.UseDoorKey(fg_g_bossDoor))
         {
-            Destroy(this.gameObject);
+
+            // アニメーション変数をtrueに設定（扉を開く）
+            at_g_animator.SetBool("State", true);
+            // 扉開錠時のSEを再生
+            as_g_audioSource.PlayOneShot(ac_g_doorOpen_se);
         }
         else
         {

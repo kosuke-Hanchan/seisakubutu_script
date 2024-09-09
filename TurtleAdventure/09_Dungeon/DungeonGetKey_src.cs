@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DungenGetKey_src : MonoBehaviour
+public class DungeonGetKey_src : MonoBehaviour
 {
 /*------------- 概要 -------------------
 鍵オブジェクトにアタッチする。
@@ -10,7 +10,7 @@ public class DungenGetKey_src : MonoBehaviour
 */
 
 /*------------- インスペクター設定用変数 --------------*/
-    [SerializeField] DungenKeyManager_src sc_g_keyManager;  // "DungenKeyManager_src"スクリプト（手持ちの鍵数管理、開錠可否判定等）設定用
+    [SerializeField] DungeonKeyManager_src sc_g_keyManager;  // "DungenKeyManager_src"スクリプト（手持ちの鍵数管理、開錠可否判定等）設定用
     [SerializeField] bool fg_g_bossDoor;                    // ボス扉かの設定用
     [SerializeField] AudioClip ac_g_getSound;               // 鍵取得時のSE
 

@@ -4,7 +4,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 
-public class DungenKeyManager_src : MonoBehaviour
+public class DungeonKeyManager_src : MonoBehaviour
 {
 /*------------- 概要 -------------------
 下記処理を行う。

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
 
-public class DungenCameraState_src : MonoBehaviour
+public class DungeonCameraState_src : MonoBehaviour
 {
 /*------------- 概要 -------------------
 
