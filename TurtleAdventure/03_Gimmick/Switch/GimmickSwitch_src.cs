@@ -5,7 +5,8 @@ using UnityEngine;
 public class GimmickSwitch_src : MonoBehaviour
 {
 /*------------- 概要 -------------------
-
+プレイヤーの当たり判定によるスイッチのON/OFF切り替え及び
+扉アニメーション変数操作による扉開閉処理を行う。
 */
 
 /*------------- インスペクター設定用変数 --------------*/
@@ -20,13 +21,17 @@ public class GimmickSwitch_src : MonoBehaviour
     private Animator at_g_anmtr;            // "Animator"コンポーネント取得用
     public float fl_g_timeCounter;          // 制限時間カウンター用
 
-    // プレイヤー状態
+
+
+    // スイッチタイプ
     public enum SWITCH_TYPE
     {
         LEVER,  // レバー型スイッチ
         FLOOR   // 床型スイッチ
     }
     [SerializeField] SWITCH_TYPE switch_type;
+
+
 
     /// <summary>
     /// スクリプトのインスタンスロード時に呼び出される
@@ -37,9 +42,8 @@ public class GimmickSwitch_src : MonoBehaviour
         at_g_anmtr.SetBool("switch_state", fg_g_switchState_flg);   // アニメーション変数を初期化
         fl_g_timeCounter = 0;                                       // カウンターを0リセット
         fg_g_switchState_flg = false;                               // スイッチ状態を"OFF"で初期化
-        SetDoorAnimVar();                                         // Doorオブジェクトの状態変数をスイッチ状態に設定
+        SetDoorAnimVar();                                           // 扉オブジェクトの状態変数をスイッチ状態に設定
     }
-
 
 
     /// <summary>
@@ -57,7 +61,6 @@ public class GimmickSwitch_src : MonoBehaviour
             // NOP
         }
     }
-
 
 
     /// <summary>
@@ -90,7 +93,7 @@ public class GimmickSwitch_src : MonoBehaviour
             fg_g_switchState_flg = false;
             // アニメーション変数をスイッチの状態に設定
             at_g_anmtr.SetBool("switch_state", fg_g_switchState_flg);
-            // Doorオブジェクトの状態変数をスイッチ状態に設定
+            // 扉オブジェクトの状態変数をスイッチ状態に設定
             SetDoorAnimVar();
             // カウンターを0リセット
             fl_g_timeCounter = 0;
@@ -103,8 +106,14 @@ public class GimmickSwitch_src : MonoBehaviour
 
 
     /// <summary>
-    /// 
+    /// 他コライダーに接触した際に呼び出される
+    /// スイッチのON/OFF処理
     /// </summary>
+    /// <detail>
+    /// スイッチタイプ(SWITCH_TYPE)に応じた処理を行う
+    /// レバータイプ：プレイヤーの「攻撃用」当たり判定用コライダーが接触した際にON/OFFを切り替える。
+    /// 床型スイッチタイプ：プレイヤーの当たり判定用コライダーが接触した際にONに切り替える。(時限式の場合のみOFF切り替え可)
+    /// </detail>
     /// <param name="cl_l_hitCol"></param>
     private void OnTriggerEnter(Collider cl_l_hitCol)
     {
@@ -131,7 +140,7 @@ public class GimmickSwitch_src : MonoBehaviour
                 // アニメーション変数をスイッチの状態に設定
                 at_g_anmtr.SetBool("switch_state", fg_g_switchState_flg);
 
-                // Doorオブジェクトの状態変数をスイッチ状態に設定
+                // 扉オブジェクトの状態変数をスイッチ状態に設定
                 SetDoorAnimVar();
                 break;
 
@@ -162,13 +171,14 @@ public class GimmickSwitch_src : MonoBehaviour
 
 
     /// <summary>
-    /// Doorオブジェクトのアニメーション変数を設定する。
+    /// 扉オブジェクトのアニメーション変数を設定する。
     /// DoorStateTransスクリプトの"DoorStateTrans"関数を呼び出す。
     /// </summary>
     private void SetDoorAnimVar()
     {
         foreach(SwitchDoor_src sc_l_subjectDoor in sc_g_subjectDoor)
         {
+            // 扉オブジェクトにアタッチしたアニメーション変数のセッター関数を呼び出す。
             sc_l_subjectDoor.DoorStateTrans(fg_g_switchState_flg); 
         }
     }

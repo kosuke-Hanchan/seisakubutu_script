@@ -21,7 +21,7 @@ public class GunAttackBullet_src : MonoBehaviour
 
 /*--------------- 定数 ----------------*/
     private const float FL_G_MOVE_SPEED = 15.0f;                // 銃弾の移動速度
-    private const float FL_G_MAX_FLIGHT_DISTANCE = 10.0f;       // 銃弾の最大飛距離
+    private const float FL_G_MAX_FLIGHT_DISTANCE = 7.0f;       // 銃弾の最大飛距離
 
 /*------------- 代入用変数----------------*/
     private Vector3 vt3_g_bullet_prePos;    // 弾丸オブジェクト生成時のPosition格納用

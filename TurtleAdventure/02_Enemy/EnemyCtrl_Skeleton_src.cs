@@ -29,10 +29,8 @@ public class EnemyCtrl_Skeleton_src : MonoBehaviour, IDamageable
 /*--------------- 定数 ----------------*/
     [SerializeField] float FL_G_CHASE_RANGE = 10.0f;            // 追跡可能範囲
     [SerializeField] float FL_G_ATTACK_RANGE = 2.0f;            // 攻撃アクションへ遷移するプレイヤーとの距離
-    [SerializeField] float FL_G_PLAYER_LOST_DIST = 10.0f;       // プレイヤーを見失う距離
     [SerializeField] float FL_G_MAX_DIST_FROM_INIT = 20.0f;     // 初期位置からの最大距離
     [SerializeField] float FL_G_VIEWING_ANGLE = 90.0f;          // 視野角
-
 
 /*------------- 代入用変数----------------*/
     private Transform tf_g_player_trfm;         // プレイヤーオブジェクトの"Transform"コンポーネント取得用
@@ -149,7 +147,7 @@ public class EnemyCtrl_Skeleton_src : MonoBehaviour, IDamageable
                 }
 
                 // IF:プレイヤーから一定距離、または初期位置から一定距離離れているか
-                if (fl_g_distanceToPlayer > FL_G_PLAYER_LOST_DIST || fl_g_distanceToInitPos > FL_G_MAX_DIST_FROM_INIT)
+                if (fl_g_distanceToPlayer > FL_G_CHASE_RANGE || fl_g_distanceToInitPos > FL_G_MAX_DIST_FROM_INIT)
                 {   
                     // 状態を"初期位置帰還状態"へ遷移
                     SetState(ENEMY_STATE.RETURN_INIT_POS);  
@@ -160,7 +158,7 @@ public class EnemyCtrl_Skeleton_src : MonoBehaviour, IDamageable
                 }
                 break;
                 
-            // 攻撃開始状態
+            // 攻撃後状態
             case ENEMY_STATE.ATTACK_AFTER:
                 // IF:プレイヤーが攻撃範囲内かつ視野角内か
                 if (fl_g_distanceToPlayer <= FL_G_ATTACK_RANGE && fg_playerIn_viewAng_flg)
@@ -365,7 +363,7 @@ public class EnemyCtrl_Skeleton_src : MonoBehaviour, IDamageable
         damageNumber.Spawn(this.transform.position, s1_l_damage);
 
         // IF:状態が"待機状態"かつプレイヤーとの距離が追跡範囲内か（待機中にダメージを受けた際、強制的に追跡状態にして一方的に撃破されるのを防ぐ）
-        if(enemy_state == ENEMY_STATE.IDLE && fl_g_distanceToPlayer <= FL_G_PLAYER_LOST_DIST)
+        if(enemy_state == ENEMY_STATE.IDLE && fl_g_distanceToPlayer <= FL_G_CHASE_RANGE)
         {
             SetState(ENEMY_STATE.CHASING);
         }

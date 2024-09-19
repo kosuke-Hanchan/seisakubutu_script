@@ -25,6 +25,7 @@ public class Player_ctrl_src : MonoBehaviour,IDamageable
 外的要因で呼び出される下記関数を記述。
 ・被ダメージ処理
 ・アニメーションイベント
+・奈落落下時の復帰処理及び復帰位置の記憶処理
 */
 
 
