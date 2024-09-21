@@ -13,15 +13,20 @@ public class GimmickSwitch_src : MonoBehaviour
     [SerializeField] bool fg_g_switchState_flg;       // スイッチの状態(ON/OFF)
     [SerializeField] bool fg_g_isTimedSwitch;         // 時限スイッチ設定値(T:時限スイッチ、F:通常スイッチ)
     [SerializeField] SwitchDoor_src[] sc_g_subjectDoor;
+    [SerializeField] AudioClip ac_g_timer_se;
+    public float fl_g_initialClicksPerSecond;     // クリック音の初期再生速度
+    public float fl_g_finalClicksPerSecond;       // クリック音の終了時再生速度
 
 /*--------------- 定数 ----------------*/
     [SerializeField] float FL_G_TIMED_SWITCH_LIMIT_TIME = 5f;   // スイッチがONになってからOFFに遷移するまでの制限時間
 
 /*------------- 代入用変数----------------*/
     private Animator at_g_anmtr;            // "Animator"コンポーネント取得用
+    private AudioSource ac_g_clickSound;    // クリック音出力用AudioSource
     public float fl_g_timeCounter;          // 制限時間カウンター用
-
-
+    private float fl_g_timeBetweenClicks;   // 時間カウントクリック音の間隔
+    private float fl_g_nextClickTime;       // クリック音間隔時間代入用
+    public bool fg_g_switch_perm_flg;       // スイッチの操作許可フラグ(時限扉を通った際にスイッチを無力化する際に使用)
 
     // スイッチタイプ
     public enum SWITCH_TYPE
@@ -38,11 +43,14 @@ public class GimmickSwitch_src : MonoBehaviour
     /// </summary>
     void Awake()
     {
+        ac_g_clickSound = this.gameObject.GetComponent<AudioSource>();  // "AudioSource"コンポーネント取得
         at_g_anmtr = this.gameObject.GetComponent<Animator>();      // "Animator"コンポーネントを取得
         at_g_anmtr.SetBool("switch_state", fg_g_switchState_flg);   // アニメーション変数を初期化
         fl_g_timeCounter = 0;                                       // カウンターを0リセット
         fg_g_switchState_flg = false;                               // スイッチ状態を"OFF"で初期化
         SetDoorAnimVar();                                           // 扉オブジェクトの状態変数をスイッチ状態に設定
+        fg_g_switch_perm_flg = true;                                // スイッチの操作を許可
+
     }
 
 
@@ -73,8 +81,8 @@ public class GimmickSwitch_src : MonoBehaviour
     /// </detail>
     private void TimedSwitch()
     {
-        // スイッチの状態がTrue(ON)でない場合早期リターン
-        if(!fg_g_switchState_flg)
+        // スイッチの状態がFalse(OFF)、またはスイッチの操作フラグがFalse(不許可)の場合早期リターン
+        if(!fg_g_switchState_flg || !fg_g_switch_perm_flg)
         { 
             return;
         }
@@ -85,6 +93,16 @@ public class GimmickSwitch_src : MonoBehaviour
 
         // 時間をカウント
         fl_g_timeCounter += Time.deltaTime;
+        // クリック音間隔を計算
+        float t = Mathf.Clamp01(fl_g_timeCounter / FL_G_TIMED_SWITCH_LIMIT_TIME);
+        fl_g_timeBetweenClicks = Mathf.Lerp(1f / fl_g_initialClicksPerSecond, 1f / fl_g_finalClicksPerSecond, t);
+        // IF:クリック音の間隔時間経過したか
+        if (Time.time >= fl_g_nextClickTime)
+        {
+            // クリック音を再生
+            ac_g_clickSound.PlayOneShot(ac_g_timer_se);
+            fl_g_nextClickTime = Time.time + fl_g_timeBetweenClicks;
+        }
 
         // IF:カウンターが制限時間以上経過したか
         if(fl_g_timeCounter >= FL_G_TIMED_SWITCH_LIMIT_TIME)
@@ -132,8 +150,9 @@ public class GimmickSwitch_src : MonoBehaviour
                     // NOP
                 }
 
-                // カウンターを0リセット
+                // 時限スイッチ用タイマー初期化
                 fl_g_timeCounter = 0;
+                fl_g_nextClickTime = Time.time;
 
                 // スイッチの状態(ON/OFF)を切り替える
                 fg_g_switchState_flg = !fg_g_switchState_flg;
