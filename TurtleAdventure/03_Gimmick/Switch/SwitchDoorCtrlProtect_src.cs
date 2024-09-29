@@ -8,11 +8,12 @@ public class SwitchDoorCtrlProtect_src : MonoBehaviour
 コライダーにアタッチする。
 プレイヤーが当コライダーに触れた際、扉を開いた状態で固定する。
 時限式スイッチを使用して開閉する扉にて、時限内に扉を通過したら扉を開いた状態で固定したい際に使用する。
+また、スイッチを無力化する。
 */
 
 /*------------- インスペクター設定用変数 --------------*/
     [SerializeField] SwitchDoor_src[] asc_g_subjectDoor;     // 固定する対象の扉オブジェクト
-
+    [SerializeField] GimmickSwitch_src sc_g_GimmickSwitch_src;  // 操作を不許可とする対象のスイッチ
 /*--------------- 定数 ----------------*/
 // 無し
 
@@ -42,5 +43,6 @@ public class SwitchDoorCtrlProtect_src : MonoBehaviour
             sc_l_subjectDoor.DoorStateTrans(true);
             sc_l_subjectDoor.fg_g_doorCtrl_perm_flg = false;
         }
+        sc_g_GimmickSwitch_src.fg_g_switch_perm_flg = false;
     }
 }

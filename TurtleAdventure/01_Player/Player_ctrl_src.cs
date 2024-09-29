@@ -32,6 +32,8 @@ public class Player_ctrl_src : MonoBehaviour,IDamageable
 
 /*------------- インスペクター設定用変数 --------------*/
     [SerializeField] PlayerHeartManager_src sc_g_PlayerHeartManager_src;    // "PlayerHeartManager_src"スクリプト(ハートアイコン制御用スクリプト)
+    [SerializeField] SelectTypeMenu_src sc_g_SelectTypeMenu_src;            // "TypeSelectMenu_src"スクリプト
+    [SerializeField] SceneStartManager_src sc_g_SceneStartManager_src;      // "SceneStartManager_src"スクリプト
     [SerializeField] PlayerStatus_data dt_g_playerStatus_data;              // プレイヤーステータス管理用スクリプタブルオブジェクト
     [SerializeField] FloatingJoystick inputJoyStick;                        // ジョイスティック(アセット)オブジェクト
     [SerializeField] GameObject go_g_playerMdlObj;                          // プレイヤーモデルオブジェクト
@@ -108,6 +110,7 @@ public class Player_ctrl_src : MonoBehaviour,IDamageable
     }
     public PLAYER_STATE player_state;
     
+    
     // プレイヤーのアクションタイプ
     public enum ACTION_TYPE
     {
@@ -119,6 +122,8 @@ public class Player_ctrl_src : MonoBehaviour,IDamageable
     }
     public ACTION_TYPE action_type;
 
+    // アクションタイプとその解放状態を管理する辞書
+    private Dictionary<int, bool> ActionTypeStatus;
 
 /*--------------- デバッグ用---------------*/
     [SerializeField] TextMeshProUGUI Debug_Text1;   // デバッグ用テキスト
@@ -153,7 +158,21 @@ public class Player_ctrl_src : MonoBehaviour,IDamageable
 
         // HPゲージマネージャーの初期化
         sc_g_PlayerHeartManager_src.InitializeHeartManager(dt_g_playerStatus_data.MAX_HP, s4_g_playerCurrent_HP);
+
+        // 各アクションタイプの初期解放状態を設定（デモプレイ用として爆弾タイプのみ未開放設定とする）
+        ActionTypeStatus = new Dictionary<int, bool>
+        {
+            { (int)ACTION_TYPE.SHOT, true },
+            { (int)ACTION_TYPE.GUN, true },
+            { (int)ACTION_TYPE.GUARD, true },
+            { (int)ACTION_TYPE.BOMB, false },
+            { (int)ACTION_TYPE.DASH, true }
+        };
+        
+        // アクションタイプ選択メニューの初期化
+        sc_g_SelectTypeMenu_src.SetupRadialButtons(ActionTypeStatus);
     }
+
 
 
     /// <summary>
@@ -1061,6 +1080,23 @@ public class Player_ctrl_src : MonoBehaviour,IDamageable
     }
 
 
+
+    /// <summary>
+    /// アクションタイプの解放処理
+    /// </summary>
+    /// <param name="unlock_action"></param>
+    public void UnlockAbility(int unlock_action)
+    {
+        if(ActionTypeStatus.ContainsKey(unlock_action) && !ActionTypeStatus[unlock_action])
+        {
+            ActionTypeStatus[unlock_action] = true;
+        }
+        else
+        {
+            // NOP
+        }
+        sc_g_SelectTypeMenu_src.SetupRadialButtons(ActionTypeStatus);
+    }
 
 /*------------- アニメーションイベント関数(アニメーションの任意のタイミングで呼び出す) -----------------*/
     /// <summary>

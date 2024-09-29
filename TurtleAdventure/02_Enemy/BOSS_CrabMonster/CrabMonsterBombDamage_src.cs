@@ -50,7 +50,7 @@ public class CrabMonsterBombDamage_src : MonoBehaviour
         {
             // NOP
         }
-        // 引数として、接触したコライダー"Hit"を設定して"BombDamage"関数を呼び出す
+        // 引数として、接触したコライダーを設定して"BombDamage"関数を呼び出す
         sc_g_CrabMonsterBomb_src.BombPlayerDamage(cl_l_hitCol.gameObject);
     }
 }

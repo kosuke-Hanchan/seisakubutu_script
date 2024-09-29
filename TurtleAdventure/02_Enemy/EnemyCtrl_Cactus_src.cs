@@ -26,7 +26,6 @@ public class EnemyCtrl_Cactus_src : MonoBehaviour, IDamageable
     [SerializeField] GameObject go_g_death_effect;              // 撃破時エフェクト
     [SerializeField] DamageNumber damageNumber;                 // 被ダメージ時のダメージ数エフェクト(アセット)
     [SerializeField] SphereCollider cl_g_attackCollider;        // 攻撃当たり判定用コライダー
-
     [SerializeField] GameObject go_g_gunBullet;                 // 遠距離攻撃時に発射する弾丸オブジェクト
 
 /*--------------- 定数 ----------------*/
@@ -36,7 +35,6 @@ public class EnemyCtrl_Cactus_src : MonoBehaviour, IDamageable
     [SerializeField] float FL_G_PLAYER_LOST_DIST = 10.0f;       // プレイヤーを見失う距離
     [SerializeField] float FL_G_VIEWING_ANGLE = 20.0f;          // 視野角
     [SerializeField] float FL_G_ROTATE_SPEED = 5.0f;            // 回転速度
-    [SerializeField] float FL_G_ATTACK_INTERVAL_TIME = 1.0f;    // 攻撃の間隔
 
 
 /*------------- 代入用変数----------------*/
@@ -108,6 +106,10 @@ public class EnemyCtrl_Cactus_src : MonoBehaviour, IDamageable
     }
 
 
+
+    /// <summary>
+    /// 正面がプレイヤーの方向に向くよう回転する処理
+    /// </summary>
     private void RotateToTarget()
     {
         // ターゲットまでの方向を計算

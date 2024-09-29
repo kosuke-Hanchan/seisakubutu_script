@@ -1,18 +1,17 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
+using System.Collections.Generic;
 
-public class RadialMenu_src : MonoBehaviour
+public class SelectTypeMenu_src : MonoBehaviour
 {
 /*------------- インスペクター設定用変数 --------------*/
-    [SerializeField] GameObject go_g_buttonPrefab;      // ボタンのプレハブ
     [SerializeField] Button bt_g_toggleButton;          // メニュー開閉用のボタン
-    [SerializeField] float fl_l_buttonRadius = 100f;    // ボタン生成位置の半径
-    [SerializeField] Sprite[] buttonImages;             // 各ボタンに設定する画像
-    [SerializeField] Vector2 buttonSize = new Vector2(150f, 150f); // 生成するボタンのサイズ
+    [SerializeField] GameObject go_g_radialMenu;          // メニュー開閉用のボタン
+    [SerializeField] Button[] radialButtons;            // プレハブで配置したボタンの配列
 
 /*--------------- 定数 ----------------*/
-    private const uint u1_g_numberOfButtons = 5;   // ボタンの数
-
+// 無し
 
 /*------------- 代入用変数----------------*/
     private Player_ctrl_src sc_g_Player_Ctrl_src;       // sc_g_Player_Ctrl_srcスクリプト格納用
@@ -20,69 +19,54 @@ public class RadialMenu_src : MonoBehaviour
 
 
 
-    void Awake()
+    /// <summary>
+    /// スクリプトのインスタンスロード時に呼び出される
+    /// </summary>
+    private void Awake()
     {
+        // Player_ctrl_srcスクリプト取得
         sc_g_Player_Ctrl_src = GameObject.FindGameObjectWithTag("Player").GetComponent<Player_ctrl_src>();
+
         // トグルボタンのクリックイベントを設定
         bt_g_toggleButton.onClick.AddListener(ToggleMenu);
-        
-        // 円形メニューを作成
-        CreateRadialMenu();
-        
+
         // 初期状態ではメニューを非表示にする
         SetMenuActive(false);
     }
 
 
+
     /// <summary>
-    /// 円形メニューの生成処理
+    /// ボタンセットアップ処理
     /// </summary>
-    void CreateRadialMenu()
+    public void SetupRadialButtons(Dictionary<int, bool> ActionTypeStatus)
     {
-        // 各ボタンの配置角度を計算
-        float angleStep = 360f / u1_g_numberOfButtons;
-
-        for (int i = 0; i < u1_g_numberOfButtons; i++)
+        // ボタンの数と辞書のエントリ数が同じだと仮定
+        for (int i = 0; i < radialButtons.Length; i++)
         {
-            // 配置角度を計算
-            float angle = i * angleStep;
-            
-            // 円形の位置を計算
-            float xPos = Mathf.Cos(angle * Mathf.Deg2Rad) * fl_l_buttonRadius;
-            float yPos = Mathf.Sin(angle * Mathf.Deg2Rad) * fl_l_buttonRadius;
-
-            // ボタンを生成して配置
-            GameObject button = Instantiate(go_g_buttonPrefab, transform);
-            button.transform.localPosition = new Vector3(xPos, yPos, 0);
-
-            // ボタンのサイズを設定
-            RectTransform rectTransform = button.GetComponent<RectTransform>();
-            if (rectTransform != null)
+            // ActionTypeStatusに基づいてボタンを表示・非表示
+            if (ActionTypeStatus.ContainsKey(i))
             {
-                rectTransform.sizeDelta = buttonSize;
+                bool isUnlocked = ActionTypeStatus[i];
+                radialButtons[i].gameObject.SetActive(isUnlocked);
+
+                // ボタンが表示されている場合、背景色などの設定を行う
+                if (isUnlocked)
+                {
+                    // ボタンにクリックイベントを追加
+                    int index = i;  // クロージャ問題を回避するためにローカル変数を使用
+                    radialButtons[i].onClick.AddListener(() => OnButtonClick(index));
+                }
             }
-            
-            // ボタンに名前を付ける
-            button.name = "Button " + (i + 1);
-            
-            // ボタンに画像を設定
-            Image buttonImage = button.GetComponent<Image>();
-            if (buttonImages.Length > i)
-            {
-                buttonImage.sprite = buttonImages[i];
-            }
-            
-            // ボタンにクリックイベントを追加
-            int index = i; // クロージャ問題を回避するためにローカル変数を使用
-            button.GetComponent<Button>().onClick.AddListener(() => OnButtonClick(index));
         }
     }
 
 
+
     /// <summary>
-    /// 
+    /// ボタンの表示/非表示処理
     /// </summary>
-    void ToggleMenu()
+    public void ToggleMenu()
     {
         // IF:プレイヤー状態が"待機状態"か
         if(sc_g_Player_Ctrl_src.player_state == 0)
@@ -104,26 +88,24 @@ public class RadialMenu_src : MonoBehaviour
 
 
     /// <summary>
-    /// 
+    /// 配置したボタンの表示/非表示を切り替える
     /// </summary>
     /// <param name="isActive"></param>
-    void SetMenuActive(bool isActive)
+    private void SetMenuActive(bool isActive)
     {
-        // 子要素（ボタン）の表示/非表示を設定
-        foreach (Transform child in transform)
-        {
-            child.gameObject.SetActive(isActive);
-        }
+        // 配置したボタンの表示/非表示を切り替える
+        go_g_radialMenu.SetActive(isActive);
     }
 
 
     /// <summary>
-    /// 
+    /// 各ボタン処理
     /// </summary>
     /// <param name="index"></param>
-    void OnButtonClick(int index)
+    public void OnButtonClick(int index)
     {
         // ボタンがクリックされたときの処理を設定
+        Debug.Log("Button " + (index + 1) + " clicked");
 
         // ボタンを押した際にメニューを閉じる
         SetMenuActive(false);

@@ -1,6 +1,7 @@
 using UnityEngine;
 using Cinemachine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class TargetDestFlgMng_src : MonoBehaviour
 {
@@ -20,6 +21,18 @@ public class TargetDestFlgMng_src : MonoBehaviour
     [SerializeField] GameObject go_g_doorOpCl_eff;              // 扉開閉時のエフェクト
     [SerializeField] CinemachineVirtualCamera cm_g_chinemachine_Vcam;    // CinemachineVirtualCamera取得用
 
+    [SerializeField] bool is_changeBGM_flg;                     // 条件達成時にBGMを変更するかの設定フラグ(T：変更する、F：変更しない)
+    [SerializeField] AudioClip ac_g_BGM;                        // 変更するBGM
+
+
+    [System.Serializable]
+    public class MyFeedbackObject
+    {
+        public GameObject feedbackObj;          // フィードバック対象オブジェクト
+        public FEEDBACK_TYPE feedbackType;      // フィードバックタイプ（アイテム表示/非表示、扉開閉など）
+    }
+    public List<MyFeedbackObject> feedbackObjects = new List<MyFeedbackObject>();   // 複数のオブジェクトをリストとして管理
+
 /*--------------- 定数 ----------------*/
 // 無し
 
@@ -27,14 +40,14 @@ public class TargetDestFlgMng_src : MonoBehaviour
     private Transform tf_g_playerObj_trfm;      // プレイヤーオブジェクトのTransformコンポ取得用
     private uint u1_g_targetEnemies_count;      // ターゲットの撃破数カウント用
     private Animator at_g_animator;             // "Animator"コンポーネント取得用
+    private AudioSource as_g_audioSource_bgm;   // BGM用AudioSource格納用
 
 /*------------- 列挙体 ---------------*/
-    private enum FEEDBACK_TYPE
+    public enum FEEDBACK_TYPE
     {
         SET_ITEM,
         OPEN_DOOR    
-    }
-    [SerializeField] FEEDBACK_TYPE feedback_type;
+    }        
 
 
 
@@ -43,6 +56,8 @@ public class TargetDestFlgMng_src : MonoBehaviour
     /// </summary>
     private void Awake()
     {   
+        // BGM用AudioSourceを取得
+        as_g_audioSource_bgm = GameObject.FindGameObjectWithTag("AudioSource_bgm").GetComponent<AudioSource>();
         // プレイヤーオブジェクトのTransformコンポ取得用
         tf_g_playerObj_trfm = GameObject.FindGameObjectWithTag("Player").transform;
     }
@@ -75,16 +90,28 @@ public class TargetDestFlgMng_src : MonoBehaviour
     /// </detail>
     private IEnumerator TargetDestroyReaction()
     {
+        // IF：BGMの変更フラグがT（変更する）か
+        if(is_changeBGM_flg)
+        {
+            // BGM用AudioSourceのAudioClipを変更
+            as_g_audioSource_bgm.clip = ac_g_BGM;
+            as_g_audioSource_bgm.Play();
+        }
+        else
+        {
+            // NOP
+        }
+
         yield return new WaitForSeconds(1f);  // 待機
 
-        // フィードバック処理を実行
-        foreach(GameObject go_l_feedbackObj in ago_g_feedbackObj)
+        // フィードバック処理
+        foreach(MyFeedbackObject feedbackObject in feedbackObjects)
         {
-            // フィードバック処理呼び出し
-            FeedBackTypejudg(go_l_feedbackObj);
+            // フィードバックタイプに基づく処理
+            FeedBackTypejudg(feedbackObject);
 
-            // カメラの追従対象をフィードバック対象オブジェクトへ設定（変化を強調するため）
-            cm_g_chinemachine_Vcam.Follow = go_l_feedbackObj.transform;
+            // カメラの追従対象を一時的に変更（変化を強調するため）
+            cm_g_chinemachine_Vcam.Follow = feedbackObject.feedbackObj.transform;
             yield return new WaitForSeconds(1f);  // 待機
         }
 
@@ -98,18 +125,18 @@ public class TargetDestFlgMng_src : MonoBehaviour
     /// <summary>
     /// フィードバックタイプの判定を行い、結果に応じて各タイプ処理関数を呼び出す。
     /// </summary>
-    private void FeedBackTypejudg(GameObject go_l_feedbackObj)
+    private void FeedBackTypejudg(MyFeedbackObject feedbackObject)
     {
-        switch(feedback_type)
+        switch(feedbackObject.feedbackType)
         {
             // アイテム表示/非表示タイプ
             case FEEDBACK_TYPE.SET_ITEM:
-                TypeSetItem(go_l_feedbackObj);
+                TypeSetItem(feedbackObject.feedbackObj);
                 break;
             
             // 扉開閉タイプ
             case FEEDBACK_TYPE.OPEN_DOOR:
-                TypeDoorOpen(go_l_feedbackObj);
+                TypeDoorOpen(feedbackObject.feedbackObj);
                 break;
             
             // それ以外
@@ -131,7 +158,7 @@ public class TargetDestFlgMng_src : MonoBehaviour
         // アイテムの表示/非表示を行う
         go_l_feedbackObj.SetActive(fg_g_booleanType_Select);
 
-        if(!(go_g_setItem_eff == null))
+        if(go_g_setItem_eff != null)
         {
             // エフェクト生成
             Instantiate(go_g_setItem_eff, go_l_feedbackObj.transform.position, Quaternion.identity);
@@ -154,7 +181,7 @@ public class TargetDestFlgMng_src : MonoBehaviour
         // 扉の開閉アニメーション変数を設定する。
         at_g_animator = go_l_feedbackObj.transform.GetComponent<Animator>();
         at_g_animator.SetBool("State", fg_g_booleanType_Select);
-        if(!(go_g_doorOpCl_eff == null))
+        if(go_g_doorOpCl_eff != null)
         {
             // エフェクト生成
             Instantiate(go_g_doorOpCl_eff, go_l_feedbackObj.transform.position, Quaternion.identity);

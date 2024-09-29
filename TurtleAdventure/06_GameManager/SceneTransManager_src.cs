@@ -10,11 +10,13 @@ public class SceneTransManager_src : MonoBehaviour
 
     public string saveFile = "SaveFile.es3";
     [SerializeField] string sc_g_scene_Name;
+    private Player_ctrl_src sc_g_Player_ctrl_src;
 
 
     private void Awake()
     {
         sc_g_SceneFader_src = GameObject.FindGameObjectWithTag("SceneFader").GetComponent<SceneFader_src>();
+        sc_g_Player_ctrl_src = GameObject.FindGameObjectWithTag("Player").GetComponent<Player_ctrl_src>();
     }
 
 
@@ -37,9 +39,10 @@ public class SceneTransManager_src : MonoBehaviour
             // NOP
         }
         // 現在のシーン名を保存
-        ES3.Save("PreviousSceneName", SceneManager.GetActiveScene().name,saveFile);
-        Debug.Log(SceneManager.GetActiveScene().name);
-        // playerPositionManager.SavePlayerPosition();
+        // string currentScene = SceneManager.GetActiveScene().name;
+        // ES3.Save<string>("previousScene", currentScene);
+        // プレイヤーの操作を禁止
+        sc_g_Player_ctrl_src.StartEventMoveCtrl();
         ChangeScene();
     }
 }

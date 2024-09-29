@@ -31,43 +31,35 @@ Enemyの制御全般を行うスクリプトである。
     [SerializeField] Transform tf_g_wl_max;                     // 左移動限界位置
 
 /*--------------- 定数 ----------------*/
-    [SerializeField] float FL_G_VIEWING_ANGLE = 20.0f;          // 視野角
-    [SerializeField] float FL_G_MOVE_SPEED_LOW = 4.0f;          // 移動速度(低速)
-    [SerializeField] float FL_G_DASH_SPEED_HIGH = 6.0f;         // 移動速度(高速)
-    [SerializeField] float FL_G_ANIM_SPEED_LOW = 1;             // アニメーションスピード(低速)
-    [SerializeField] float FL_G_ANIM_SPEED_HIGH = 1;            // アニメーションスピード(高速)
+    private const float FL_G_VIEWING_ANGLE = 15.0f;          // 視野角
+    private const float FL_G_ANIM_SPEED_NORMAL = 1.2f;       // アニメーションスピード(通常)
+    private const float FL_G_ANIM_SPEED_HIGH = 1.6f;         // アニメーションスピード(高速)
+    private const float FL_G_ROTATE_SPEED_NORMAL = 3.0f;     // 回転速度(通常)
+    private const float FL_G_ROTATE_SPEED_HIGH = 5.0f;       // 回転速度(高速)
 
 /*------------- 代入用変数----------------*/
     private Transform tf_g_player_trfm;         // プレイヤーオブジェクトの"Transform"コンポーネント取得用
     private Vector3 vt3_g_initPos;              // 初期位置
     private Animator at_g_animator;             // "Animator"コンポーネント取得用
-
+    private GameObject go_g_bomb_clone;         // 設置した爆弾オブジェクトの格納用
     private int s1_g_currentHealth;             // 現在HP
-    private float fl_g_distanceToPlayer;        // プレイヤーとの距離
-    private float fl_g_distanceToInitPos;       // 初期位置との距離
-    
     private bool fg_playerIn_viewAng_flg;       // プレイヤーが視野角内に存在するか(T:存在する、F:存在しない)    
-
-    private bool fg_g_moveDir_LR;
-    private float fl_g_moveSpeed;               // 移動速度
-
-    private float fl_g_IntervalTime_atk;           // 攻撃間のクールタイム時間(乱数を代入)
-    private float fl_g_IntervalTimeCount_atk;       // クールタイム計測用タイマー
+    private float fl_g_rotateSpeed;             // 移動速度
+    private float fl_g_IntervalTime_atk;        // 攻撃間のクールタイム時間(乱数を代入)
+    private float fl_g_IntervalTimeCount_atk;   // クールタイム計測用タイマー
 
 /*------------ 列挙体 -------------------*/
-    // Enemy状態
+    // 状態管理用列挙体
     public enum ENEMY_STATE
     {
         IDLE,               // 待機状態
+        CHASING,
         PUNCH_ATTACK,       // 近距離攻撃状態
         BOMB_ATTACK,        // 遠距離攻撃状態
         ATTACK_AFTER,       // 攻撃後状態
         DIZZY,              // 巡回状態
         GET_HIT,            // 被ダメージ状態
         DEATH,              // 撃破状態
-        MOVE_RIGHT,         // 右方向移動状態
-        MOVE_LEFT,          // 左方向移動状態
-        ACT_THINK           // アクション思考状態
     }
     public ENEMY_STATE enemy_state; // Enemyの状態
 
@@ -84,8 +76,8 @@ Enemyの制御全般を行うスクリプトである。
         // "Animator"コンポーネントを取得
         at_g_animator = this.GetComponent<Animator>();
 
-        // 状態を"待機状態"に設定
-        enemy_state = ENEMY_STATE.MOVE_RIGHT;
+        // 状態を"追跡状態"に設定
+        enemy_state = ENEMY_STATE.CHASING;
 
         // HPを取得
         s1_g_currentHealth = dt_g_enemyStatus_data.MAX_HP;
@@ -94,10 +86,10 @@ Enemyの制御全般を行うスクリプトである。
         fl_g_IntervalTime_atk = Random.Range(2,6);
 
         // アニメーションスピードを1(通常)に設定
-        at_g_animator.SetFloat("Speed", FL_G_ANIM_SPEED_LOW);
+        at_g_animator.SetFloat("Speed", FL_G_ANIM_SPEED_NORMAL);
 
         // 移動速度を定数で初期化
-        fl_g_moveSpeed = FL_G_MOVE_SPEED_LOW;
+        fl_g_rotateSpeed = FL_G_ROTATE_SPEED_NORMAL;
 
         // 攻撃当たり判定用コライダーを無効に設定
         cl_g_attackCollider.enabled = false;
@@ -110,10 +102,6 @@ Enemyの制御全般を行うスクリプトである。
     /// </summary>
     private void Update()
     {
-        // プレイヤーとEnemy(当オブジェクト)の距離を取得
-        fl_g_distanceToPlayer = DistCalculation(tf_g_player_trfm.position, transform.position);
-        // 初期位置とEnemy(当オブジェクト)の距離を取得
-        fl_g_distanceToInitPos = DistCalculation(vt3_g_initPos, this.transform.position);
         // プレイヤーが視野角内に存在するかを取得
         fg_playerIn_viewAng_flg = IsPlayerInViewAngle();   
         // 状態遷移判定を行う
@@ -137,11 +125,39 @@ Enemyの制御全般を行うスクリプトである。
         {   
             // 待機状態
             case ENEMY_STATE.IDLE:
+                // IF:プレイヤーが視界外か
+                if(!fg_playerIn_viewAng_flg)
+                {
+                    // 状態を"追跡状態"へ遷移
+                    SetState(ENEMY_STATE.CHASING);                
+                }
+                else
+                {
+                    // NOP
+                }
+                // 攻撃状態遷移処理
+                AttackTypeRandJudg();
                 // NOP
+                break;
+            
+            // 追跡状態
+            case ENEMY_STATE.CHASING:
+                // IF:プレイヤーが視界内か
+                if(fg_playerIn_viewAng_flg)
+                {
+                    // 状態を"待機状態"へ遷移
+                    SetState(ENEMY_STATE.IDLE);
+                }
+                else
+                {
+                    // NOP
+                }
+                // 攻撃状態遷移処理
+                AttackTypeRandJudg();
                 break;
 
             // 近距離攻撃状態
-            case ENEMY_STATE.PUNCH_ATTACK:    
+            case ENEMY_STATE.PUNCH_ATTACK:
                 // NOP
                 break;
 
@@ -157,49 +173,17 @@ Enemyの制御全般を行うスクリプトである。
 
             // 混乱ダメージ状態
             case ENEMY_STATE.DIZZY:   
-                // 現状"混乱状態"は未使用
+                // NOP
                 break;
 
             // 被ダメージ状態
             case ENEMY_STATE.GET_HIT:   
-                // 現状"被ダメージ状態"は未使用
+                // NOP
                 break;
 
             // 撃破状態
             case ENEMY_STATE.DEATH:     
                 // NOP
-                break;
-
-            // 右移動状態
-            case ENEMY_STATE.MOVE_RIGHT:
-                // 攻撃制御処理を実行
-                AttackTypeRandJudg();
-                // IF:目標地点に到達したか
-                if(Vector3.Distance(transform.position, tf_g_wr_max.position) < 0.1f)
-                {
-                    // 状態を"左移動状態"へ遷移する
-                    SetState(ENEMY_STATE.MOVE_LEFT);
-                }
-                else
-                {
-                    // NOP
-                }
-                break;
-
-            // 左移動状態
-            case ENEMY_STATE.MOVE_LEFT: 
-                // 攻撃制御処理を実行
-                AttackTypeRandJudg();
-                // IF:目標地点に到達したか
-                if (Vector3.Distance(transform.position, tf_g_wl_max.position) < 0.1f)
-                {
-                    // 状態を"右移動状態"へ遷移する
-                    SetState(ENEMY_STATE.MOVE_RIGHT);
-                }
-                else
-                {
-                    // NOP
-                }
                 break;
 
             // それ以外
@@ -228,6 +212,14 @@ Enemyの制御全般を行うスクリプトである。
             case ENEMY_STATE.IDLE:
                 // アニメーション変数を設定
                 at_g_animator.SetInteger("State", (int)ENEMY_STATE.IDLE);
+                break;
+                
+            // 追跡状態
+            case ENEMY_STATE.CHASING:
+                // プレイヤーの方向を向くよう回転
+                RotateToTarget();
+                // アニメーション変数を設定   
+                at_g_animator.SetInteger("State", (int)ENEMY_STATE.CHASING);
                 break;
 
             // 近距離攻撃攻撃状態
@@ -263,23 +255,8 @@ Enemyの制御全般を行うスクリプトである。
             case ENEMY_STATE.DEATH:     
                 // アニメーション変数を設定
                 at_g_animator.SetInteger("State", (int)ENEMY_STATE.DEATH);
-                // 攻撃判定用コライダーを無効化（攻撃アニメーション中に撃破された際に残り続けてしまうのを防ぐ）
+                // 攻撃判定用コライダーを無効化（攻撃アニメーション中に撃破された際に当たり判定が残り続けてしまうのを防ぐ）
                 cl_g_attackCollider.enabled = false;
-                break;
-
-            // 左右移動状態
-            case ENEMY_STATE.MOVE_RIGHT:
-                // アニメーション変数を設定   
-                at_g_animator.SetInteger("State", (int)ENEMY_STATE.MOVE_RIGHT);
-                // 現在の位置から目標位置へ向かって移動
-                transform.position = Vector3.MoveTowards(transform.position, tf_g_wr_max.position, fl_g_moveSpeed * Time.deltaTime);
-                break;
-
-            case ENEMY_STATE.MOVE_LEFT: 
-                // アニメーション変数を設定   
-                at_g_animator.SetInteger("State", (int)ENEMY_STATE.MOVE_LEFT);
-                // 現在の位置から目標位置へ向かって移動
-                transform.position = Vector3.MoveTowards(transform.position, tf_g_wl_max.position, fl_g_moveSpeed * Time.deltaTime);
                 break;
 
             // それ以外
@@ -287,6 +264,21 @@ Enemyの制御全般を行うスクリプトである。
                 // NOP
                 break;
         }
+    }
+
+
+
+    /// <summary>
+    /// 正面がプレイヤーの方向に向くよう回転する処理
+    /// </summary>
+    private void RotateToTarget()
+    {
+        // ターゲットまでの方向を計算
+        Vector3 direction = tf_g_player_trfm.position - transform.position;
+        // ターゲットの方向を向くための回転を計算
+        Quaternion targetRotation = Quaternion.LookRotation(direction);
+        // 現在の回転からターゲットの方向への回転をスムーズに補間
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, fl_g_rotateSpeed * Time.deltaTime);
     }
 
 
@@ -311,7 +303,7 @@ Enemyの制御全般を行うスクリプトである。
             // クールタイム計測用タイマーリセット
             fl_g_IntervalTimeCount_atk = 0;
             // クールタイムを再設定
-            fl_g_IntervalTime_atk = Random.Range(2,6);
+            fl_g_IntervalTime_atk = Random.Range(2,5);
 
             // 攻撃タイプ(爆弾/物理)を乱数にて判定（タイプごとに確率を設定する場合は乱数のRange、及びcase数を変更する）
             switch(Random.Range(0,2))
@@ -321,9 +313,19 @@ Enemyの制御全般を行うスクリプトである。
                     SetState(ENEMY_STATE.PUNCH_ATTACK);
                     break;
 
-                // 1の場合：状態を"爆弾攻撃状態"に遷移
+                // 1の場合：状態を"爆弾攻撃状態"に遷移(既に爆弾が設置されている場合は"物理攻撃状態に遷移")
                 case 1:
-                    SetState(ENEMY_STATE.BOMB_ATTACK);
+                    // IF:爆弾が設置されていないか
+                    if(!go_g_bomb_clone)
+                    {
+                        // 状態を"爆弾攻撃状態"へ遷移
+                        SetState(ENEMY_STATE.BOMB_ATTACK);
+                    }
+                    else
+                    {
+                        // 状態を"近距離攻撃"へ遷移
+                        SetState(ENEMY_STATE.PUNCH_ATTACK);
+                    }
                     break;
 
                 default:
@@ -423,7 +425,7 @@ Enemyの制御全般を行うスクリプトである。
         if (s1_g_currentHealth <= 50)
         {
             // 移動速度を「高速」に切り替え
-            fl_g_moveSpeed = FL_G_DASH_SPEED_HIGH;
+            fl_g_rotateSpeed = FL_G_ROTATE_SPEED_HIGH;
             // アニメーション速度を「高速」に切り替え
             at_g_animator.SetFloat("Speed", FL_G_ANIM_SPEED_HIGH);
         }
@@ -435,7 +437,6 @@ Enemyの制御全般を行うスクリプトである。
         // IF:HPが0以下か
         if (s1_g_currentHealth <= 0)
         {
-            Debug.Log("aaa");
             // 状態を"撃破状態"に設定
             SetState(ENEMY_STATE.DEATH);
         }
@@ -461,12 +462,29 @@ Enemyの制御全般を行うスクリプトである。
         // 接触したコライダーを持つGameObjectを取得
         GameObject go_l_hitObj = cl_l_hitCol.gameObject;
 
-        // IF：接触したオブジェクトのタグが"OtherCollider(汎用コライダー)"か
-        // (当スクリプト使用場面で"OtherCollider"タグを持つのは爆弾オブジェクトのみであるため当タグを使用)
-        if(go_l_hitObj.CompareTag("OtherCollider"))
+        // IF：接触したオブジェクトが爆弾オブジェクトか
+        if(go_l_hitObj == go_g_bomb_clone)
         {
-            // 状態を"混乱状態"へ遷移
-            SetState(ENEMY_STATE.DIZZY);
+            // IF：爆弾の攻撃対象がプレイヤーか(プレイヤーの場合は早期リターン)
+            if(go_g_bomb_clone.GetComponent<CrabMonsterBomb_src>().GetPlayerDamagePermFlg())
+            {
+                return;
+            }
+            else
+            {
+                // NOP
+            }
+
+            // IF：状態が"待機状態"または"追跡状態"か
+            if(enemy_state == ENEMY_STATE.IDLE || enemy_state == ENEMY_STATE.CHASING)
+            {
+                // 状態を"混乱状態"へ遷移
+                SetState(ENEMY_STATE.DIZZY);
+            }
+            else
+            {
+                // NOP
+            }
         }
         else
         {
@@ -484,7 +502,7 @@ Enemyの制御全般を行うスクリプトである。
     public void AnimEventStateSetMove()
     {
         // 状態を"攻撃後状態"へ遷移
-        SetState(ENEMY_STATE.MOVE_RIGHT);
+        SetState(ENEMY_STATE.CHASING);
     }
 
 
@@ -509,14 +527,15 @@ Enemyの制御全般を行うスクリプトである。
         cl_g_attackCollider.enabled = false;
     }
 
-
     /// <summary>
-    /// 爆弾を発射(生成)処理
+    /// 爆弾オブジェクトの生成処理
     /// </summary>
     public void AnimEventShootBomb()
     {
-        // 砲弾オブジェクトを生成(射出)
-        Instantiate(go_g_bomb, this.transform.position + this.transform.forward + new Vector3 (0, 0.5f, -3.5f), go_g_bomb.transform.rotation);
+        Quaternion rotation = Quaternion.LookRotation(this.transform.forward);
+        // 爆弾オブジェクトを生成
+        go_g_bomb_clone = Instantiate(go_g_bomb, this.transform.position + this.transform.forward + new Vector3(0, 0.7f, 0),
+                                        this.transform.rotation * Quaternion.Euler(-90, 0, 0));
     }
 
 

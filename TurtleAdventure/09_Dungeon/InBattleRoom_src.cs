@@ -15,11 +15,16 @@ public class InBattleRoom_src : MonoBehaviour
     [SerializeField] GameObject[] ago_g_setDoorObj;     // 対象ドアオブジェクト
     [SerializeField] GameObject[] ago_g_enemyObj;       // 出現させる敵オブジェクト
     [SerializeField] GameObject go_g_enemyApp_eff;      // 敵の出現エフェクト
+
+    [SerializeField] bool is_changeBGM_flg;             // 敵出現時にBGMを変更するかの設定フラグ(T：変更する、F：変更しない)
+    [SerializeField] AudioClip ac_g_BGM;                // 変更するBGM
+
 /*--------------- 定数 ----------------*/
 // 無し
 
 /*------------- 代入用変数----------------*/
-private Animator at_g_animator;             // "Animator"コンポーネント取得用
+    private Animator at_g_animator;             // "Animator"コンポーネント取得用
+    private AudioSource as_g_audioSource_bgm;    // BGM用AudioSource格納用
 
 
 
@@ -28,6 +33,9 @@ private Animator at_g_animator;             // "Animator"コンポーネント�
     /// </summary>
     private void Awake()
     {   
+        // BGM用AudioSourceを取得
+        as_g_audioSource_bgm = GameObject.FindGameObjectWithTag("AudioSource_bgm").GetComponent<AudioSource>();
+
         // 初期状態として扉を開く
         foreach(GameObject go_l_setDoorObj in ago_g_setDoorObj)
         {
@@ -78,6 +86,18 @@ private Animator at_g_animator;             // "Animator"コンポーネント�
             Instantiate(go_g_enemyApp_eff, go_l_enemyObj.transform.position, Quaternion.identity);
         }
 
+        // IF：BGMの変更フラグがT（変更する）か
+        if(is_changeBGM_flg)
+        {
+            // BGM用AudioSourceのAudioClipを変更
+            as_g_audioSource_bgm.clip = ac_g_BGM;
+            as_g_audioSource_bgm.Play();
+        }
+        else
+        {
+            // NOP
+        }
+        
         Destroy(this.gameObject);
     }
 }
